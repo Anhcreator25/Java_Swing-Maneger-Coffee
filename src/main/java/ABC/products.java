@@ -176,7 +176,7 @@ String sql="select MaSP, TenSP, DanhMuc, Gia, TrangThai from sanpham";
                         rs.getString("TenSP"),
                         rs.getString("DanhMuc"),
                         rs.getDouble("Gia"),
-                        rs.getString("TrangThai")
+                        trangthaitx
                 });
             }
         } catch (Exception e) {
