@@ -124,7 +124,7 @@ public class LoginForm extends JFrame {
     }
 
     public void checkLogin(String name, String pass) {
-        String query = "SELECT * FROM account WHERE name = '" + name + "' AND pass = '" + pass + "'";
+        String query = "SELECT * FROM taikhoan WHERE name = '" + name + "' AND pass = '" + pass + "'";
         ResultSet rs = db.getDB(query);
         try {
             if (rs.next()) {

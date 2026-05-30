@@ -122,7 +122,7 @@ public class Register extends JPanel{
             return;
         }
 
-        String query = "INSERT INTO account(name,pass) VALUES ('" + name + "','" + pass + "')";
+        String query = "INSERT INTO taikhoan(name,pass) VALUES ('" + name + "','" + pass + "')";
         try {
             int rowsAffected = db.executeDB(query);
             if (rowsAffected > 0) {

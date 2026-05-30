@@ -157,7 +157,7 @@ public class Setting extends JPanel {
                          JOptionPane.showMessageDialog(this,"Mật khẩu xác nhận không khớp");
                      }
                         try {
-                            String sql = "UPDATE account SET pass =? WHERE id = ?";
+                            String sql = "UPDATE taikhoan SET pass =? WHERE id = ?";
                             PreparedStatement ps=con.prepareStatement(sql);
                             ps.setString(1,Pass_new);
                             ps.setInt(2,Save_logininfor.id);
