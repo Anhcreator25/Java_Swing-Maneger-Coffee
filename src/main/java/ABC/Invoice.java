@@ -11,12 +11,21 @@ import java.awt.BorderLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import java.io.FileOutputStream;
+import com.itextpdf.text.BaseColor;
+import com.itextpdf.text.Chunk;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.pdf.PdfPCell;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 
 public class Invoice extends JPanel {
@@ -276,7 +285,9 @@ public class Invoice extends JPanel {
                          rs.getInt("TongTien")
                  };
                  Model.addRow(row);
-             }
+
+}
+
          }catch (Exception ex){
              ex.printStackTrace();
          }
@@ -308,46 +319,99 @@ public class Invoice extends JPanel {
 
             int maHD = Integer.parseInt(Table.getValueAt(row, 0).toString());
 
-            com.itextpdf.text.pdf.BaseFont bf = com.itextpdf.text.pdf.BaseFont.createFont("C:\\Windows\\Fonts\\Arial.ttf", com.itextpdf.text.pdf.BaseFont.IDENTITY_H, com.itextpdf.text.pdf.BaseFont.EMBEDDED);
-            com.itextpdf.text.Font fontVN = new com.itextpdf.text.Font(bf, 12, com.itextpdf.text.Font.NORMAL);
+            // Lấy thời gian tạo hoá đơn (cột NgayLap) từ DB
+            Timestamp ngayLap = null;
+            try {
+                ResultSet rsInfo = db.getDB("SELECT NgayLap FROM hoadon WHERE MaHD = " + maHD);
+                if (rsInfo.next()) {
+                    ngayLap = rsInfo.getTimestamp("NgayLap");
+                }
+                if (rsInfo != null) rsInfo.close();
+            } catch (Exception e) {
+                // Nếu có lỗi truy vấn, để thời gian rỗng
+                ngayLap = null;
+            }
+            String ngayLapStr = "-";
+            if (ngayLap != null) {
+                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+                ngayLapStr = sdf.format(ngayLap);
+            }
+
+            // Font setup
+            com.itextpdf.text.pdf.BaseFont bf = com.itextpdf.text.pdf.BaseFont.createFont(
+                    "C:\\Windows\\Fonts\\Arial.ttf",
+                    com.itextpdf.text.pdf.BaseFont.IDENTITY_H,
+                    com.itextpdf.text.pdf.BaseFont.EMBEDDED);
+            com.itextpdf.text.Font titleFont = new com.itextpdf.text.Font(bf, 18, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font headerFont = new com.itextpdf.text.Font(bf, 12, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font normalFont = new com.itextpdf.text.Font(bf, 12, com.itextpdf.text.Font.NORMAL);
+            com.itextpdf.text.Font addressFont = new com.itextpdf.text.Font(bf, 12, com.itextpdf.text.Font.NORMAL);
+            BaseColor headerBg = new BaseColor(55, 111, 109); // matches UI theme
 
             Document document = new Document();
             PdfWriter.getInstance(document,
                     new FileOutputStream("HoaDon_" + maHD + ".pdf"));
-
             document.open();
 
-            document.add(new com.itextpdf.text.Phrase("HÓA ĐƠN",fontVN));
-            document.add(new Paragraph(" "));
-            document.add(new com.itextpdf.text.Phrase("Mã hóa đơn: " + maHD,fontVN));
-            document.add(new Paragraph(" "));
+            // Title
+            Paragraph title = new Paragraph("HÓA ĐƠN", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(10);
+            document.add(title);
 
+            // Address
+            Paragraph address = new Paragraph("Địa chỉ: tú loan, quảng trị", addressFont);
+            address.setAlignment(Element.ALIGN_LEFT);
+            address.setSpacingAfter(5);
+            document.add(address);
+
+            // Invoice information
+            Paragraph info = new Paragraph("Mã hóa đơn: " + maHD, normalFont);
+            info.setSpacingAfter(5);
+            document.add(info);
+
+            Paragraph timeInfo = new Paragraph("Thời gian tạo: " + ngayLapStr, normalFont);
+            timeInfo.setSpacingAfter(5);
+            document.add(timeInfo);
+
+            document.add(Chunk.NEWLINE);
+
+            // Table header
             PdfPTable pdfTable = new PdfPTable(4);
-            pdfTable.addCell(new com.itextpdf.text.Phrase("Sản Phẩm",fontVN));
-            pdfTable.addCell(new com.itextpdf.text.Phrase("Số lượng",fontVN));
-            pdfTable.addCell(new com.itextpdf.text.Phrase("Đơn giá",fontVN));
-            pdfTable.addCell(new com.itextpdf.text.Phrase("Thành tiền",fontVN));
+            pdfTable.setWidths(new float[] {3f, 1f, 2f, 2f});
+            pdfTable.addCell(createCell("Sản Phẩm", headerFont, Element.ALIGN_CENTER, headerBg));
+            pdfTable.addCell(createCell("Số lượng", headerFont, Element.ALIGN_CENTER, headerBg));
+            pdfTable.addCell(createCell("Đơn giá", headerFont, Element.ALIGN_CENTER, headerBg));
+            pdfTable.addCell(createCell("Thành tiền", headerFont, Element.ALIGN_CENTER, headerBg));
 
-            ResultSet rs = db.getDB("select sp.TenSP, hdct.SoLuong, hdct.DonGia, hdct.ThanhTien " +
+            // Data rows
+            ResultSet rs = db.getDB(
+                    "select sp.TenSP, hdct.SoLuong, hdct.DonGia, hdct.ThanhTien " +
                     "from chitiethoadon hdct " +
                     "join sanpham sp on hdct.MaSP = sp.MaSP " +
                     "where hdct.MaHD = " + maHD);
             int tong = 0;
+            NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
             while (rs.next()) {
-                pdfTable.addCell(new com.itextpdf.text.Phrase(rs.getString("TenSP"), fontVN));
-                pdfTable.addCell(new com.itextpdf.text.Phrase(String.valueOf(rs.getInt("SoLuong")), fontVN));
-                pdfTable.addCell(new com.itextpdf.text.Phrase(String.valueOf(rs.getInt("DonGia")), fontVN));
-                pdfTable.addCell(new com.itextpdf.text.Phrase(String.valueOf(rs.getInt("ThanhTien")), fontVN));
+                pdfTable.addCell(new Phrase(rs.getString("TenSP"), normalFont));
+                pdfTable.addCell(new Phrase(nf.format(rs.getInt("SoLuong")), normalFont));
+                pdfTable.addCell(new Phrase(nf.format(rs.getInt("DonGia")), normalFont));
+                pdfTable.addCell(new Phrase(nf.format(rs.getInt("ThanhTien")), normalFont));
                 tong += rs.getInt("ThanhTien");
-                System.out.println(rs.getString("TenSP"));
             }
 
             document.add(pdfTable);
-            document.add(new com.itextpdf.text.Phrase("TỔNG TIỀN: " + tong,fontVN));
+
+            // Total amount
+            Paragraph total = new Paragraph("TỔNG TIỀN: " + nf.format(tong) + " VND",
+                    new com.itextpdf.text.Font(bf, 14, com.itextpdf.text.Font.BOLD));
+            total.setAlignment(Element.ALIGN_RIGHT);
+            total.setSpacingBefore(10);
+            document.add(total);
 
             document.close();
 
-            JOptionPane.showMessageDialog(this, "Da tao hoa don PDF");
+            JOptionPane.showMessageDialog(this, "Đã tạo hoá đơn PDF");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -380,6 +444,14 @@ public class Invoice extends JPanel {
         }catch (Exception ex){
             ex.printStackTrace();
         }
+    }
+    // Helper method to create styled PDF cell
+    private PdfPCell createCell(String text, com.itextpdf.text.Font font, int align, BaseColor bg) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setHorizontalAlignment(align);
+        cell.setBackgroundColor(bg);
+        cell.setPadding(5);
+        return cell;
     }
 }
 
