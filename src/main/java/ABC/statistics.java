@@ -16,7 +16,9 @@ import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
-import  java.time.LocalDate;
+import java.time.LocalDate;
+import java.text.NumberFormat;
+import java.util.Locale;
 public class statistics extends JPanel {
 
     private JComboBox<String> Type_JCB;
@@ -76,6 +78,7 @@ public class statistics extends JPanel {
         jlb_Type.setForeground(Color.WHITE);
         panel.add(jlb_Type);
         panel.add(Type_JCB);
+        Type_JCB.addActionListener(e -> updateFilterFields());
 
         jlb_Day = new JLabel("Ngày");
         jlb_Day.setFont(FONT_Title);
@@ -145,9 +148,31 @@ public class statistics extends JPanel {
               );
           }
           }
-panelChart.revalidate();
-panelChart.repaint();
+      panelChart.revalidate();
+      panelChart.repaint();
       }
+
+    // Adjust filter fields visibility based on selected type
+    private void updateFilterFields() {
+        String loai = Type_JCB.getSelectedItem().toString();
+        switch (loai) {
+            case "Theo ngày":
+                Day_JTF.setEnabled(true);
+                Month_JTF.setEnabled(true);
+                Year_JTF.setEnabled(true);
+                break;
+            case "Theo tháng":
+                Day_JTF.setEnabled(false);
+                Month_JTF.setEnabled(true);
+                Year_JTF.setEnabled(true);
+                break;
+            case "Theo năm":
+                Day_JTF.setEnabled(false);
+                Month_JTF.setEnabled(false);
+                Year_JTF.setEnabled(true);
+                break;
+        }
+    }
 
     private  JPanel SummaryPanel() {
         JPanel panel1 = new JPanel(new GridLayout(1,4,15,15));
@@ -178,7 +203,7 @@ panelChart.repaint();
 
         valueLabel.setHorizontalAlignment(JLabel.CENTER);
         valueLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        valueLabel.setForeground(new Color(200, 80, 80));
+        valueLabel.setForeground(COLOR);
 
         card.add(lblTitle, BorderLayout.NORTH);
         card.add(valueLabel, BorderLayout.CENTER);
@@ -197,11 +222,12 @@ panelChart.repaint();
                   " AND MONTH(NgayLap)=" + month +
                   " AND YEAR(NgayLap)=" + year;
         try {
-               ResultSet rs=db.getDB(sql);
-               if(rs.next()){
-                   jlb_numberInvoice.setText(rs.getString("soHD"));
-                   jlb_Revenue.setText(rs.getString("doanhthu"));
-               }
+                ResultSet rs=db.getDB(sql);
+                if(rs.next()){
+                    NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
+                    jlb_numberInvoice.setText(rs.getString("soHD"));
+                    jlb_Revenue.setText(nf.format(rs.getLong("doanhthu")) + " VND");
+                }
 
             String sqlSP =
                     "SELECT SUM(ct.SoLuong) AS soSP " +
@@ -244,9 +270,10 @@ panelChart.repaint();
 
             ResultSet rsHD = db.getDB(sqlHD);
             if (rsHD.next()) {
+                NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
                 jlb_numberInvoice.setText(rsHD.getString("soHD"));
-                jlb_Revenue.setText(rsHD.getString("doanhthu"));
-                jlb_MonthRevenue.setText(rsHD.getString("doanhthu"));
+                jlb_Revenue.setText(nf.format(rsHD.getLong("doanhthu")) + " VND");
+                jlb_MonthRevenue.setText(nf.format(rsHD.getLong("doanhthu")) + " VND");
             }
 
             String sqlSP =
@@ -287,8 +314,9 @@ panelChart.repaint();
 
             ResultSet rsHD = db.getDB(sqlHD);
             if (rsHD.next()) {
+                NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
                 jlb_numberInvoice.setText(rsHD.getString("soHD"));
-                jlb_Revenue.setText(rsHD.getString("doanhthu"));
+                jlb_Revenue.setText(nf.format(rsHD.getLong("doanhthu")) + " VND");
             }
 
             String sqlSP =
@@ -327,10 +355,11 @@ panelChart.repaint();
         try {
             ResultSet rs = db.getDB(sql);
             while (rs.next()) {
+                NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
                 model.addRow(new Object[]{
                         rs.getDate("NgayLap"),
                         rs.getString("MaHD"),
-                        rs.getLong("TongTien")
+                        nf.format(rs.getLong("TongTien")) + " VND"
                 });
             }
         } catch (Exception e) {
@@ -356,10 +385,11 @@ panelChart.repaint();
         try {
             ResultSet rs = db.getDB(sql);
             while (rs.next()) {
+                NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
                 model.addRow(new Object[]{
                         rs.getInt("ngay"),
                         rs.getInt("soHD"),
-                        rs.getLong("doanhthu")
+                        nf.format(rs.getLong("doanhthu")) + " VND"
                 });
             }
         } catch (Exception e) {
@@ -383,10 +413,11 @@ panelChart.repaint();
         try {
             ResultSet rs = db.getDB(sql);
             while (rs.next()) {
+                NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
                 model.addRow(new Object[]{
                         "Tháng " + rs.getInt("thang"),
                         rs.getInt("soHD"),
-                        rs.getLong("doanhthu")
+                        nf.format(rs.getLong("doanhthu")) + " VND"
                 });
             }
         } catch (Exception e) {
@@ -517,8 +548,9 @@ panelChart.repaint();
            Month_JTF.setText(String.valueOf(Today.getMonthValue()));
            Year_JTF.setText(String.valueOf(Today.getYear()));
 
-            Type_JCB.setSelectedIndex(0);
-             STAT_DATA();
+             Type_JCB.setSelectedIndex(0);
+             updateFilterFields();
+              STAT_DATA();
     }
 
     private JPanel TablePanel() {
@@ -530,6 +562,7 @@ panelChart.repaint();
         model=new DefaultTableModel(colum,0);
          Table =new  JTable(model);
          Table.setRowHeight(25);
+         Table.setAutoCreateRowSorter(true);
 
          JTableHeader header1 = Table.getTableHeader();
            header1.setForeground(COLOR);
