@@ -9,6 +9,7 @@ import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 
 public class Setting extends JPanel {
